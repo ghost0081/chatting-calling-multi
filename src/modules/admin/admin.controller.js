@@ -13,7 +13,7 @@ exports.createTenant = async (req, res, next) => {
     // db_config should be { host, user, password, database, port }
     const dbConfigJson = db_config ? JSON.stringify(db_config) : null;
 
-    const [insertResult] = await db.execute(
+    const insertResult = await db.execute(
       `INSERT INTO tenants (name, app_id, public_key, secret_key, plan_id, status, db_config)
        VALUES (?, ?, ?, ?, ?, 'active', ?)`,
       [name, app_id, public_key, secret_key, plan_id || null, dbConfigJson]
