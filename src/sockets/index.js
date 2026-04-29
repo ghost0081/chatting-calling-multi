@@ -27,7 +27,8 @@ const initSocket = (server) => {
     try {
       const db = require('../config/db');
       // Look up tenant by appId
-      const [tenants] = await db.query('SELECT id FROM tenants WHERE app_id = ?', [appId]);
+      const tenantsResult = await db.query('SELECT id FROM tenants WHERE app_id = ?', [appId]);
+      const tenants = tenantsResult.rows;
       
       if (!tenants || tenants.length === 0) {
         return next(new Error('Authentication error: Invalid appId'));
