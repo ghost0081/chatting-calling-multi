@@ -27,7 +27,7 @@ exports.generateUserToken = async (req, res, next) => {
     }
 
     // 2. Get Tenant's Dynamic Database Connection
-    const dbManager = require('../../utils/dbManager');
+    const dbManager = require('../../config/dbManager');
     const tenantDb = await dbManager.getTenantDb(tenant.id);
 
     // 3. Find or create user in the client's own database

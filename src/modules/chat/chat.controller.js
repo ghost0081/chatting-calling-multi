@@ -6,7 +6,8 @@ exports.getMessages = async (req, res, next) => {
     const { conversationId } = req.params;
     const { appId } = req.query;
 
-    const [tenant] = await db.query('SELECT * FROM tenants WHERE app_id = ?', [appId]);
+    const tenantResult = await db.query('SELECT * FROM tenants WHERE app_id = ?', [appId]);
+    const tenant = tenantResult.rows[0];
     if (!tenant) return res.status(404).json({ success: false, message: 'App not found' });
 
     const tenantDb = await DbManager.getTenantDb(tenant.id);
@@ -27,7 +28,8 @@ exports.getConversations = async (req, res, next) => {
     const { userId } = req.params;
     const { appId } = req.query;
 
-    const [tenant] = await db.query('SELECT * FROM tenants WHERE app_id = ?', [appId]);
+    const tenantResult = await db.query('SELECT * FROM tenants WHERE app_id = ?', [appId]);
+    const tenant = tenantResult.rows[0];
     if (!tenant) return res.status(404).json({ success: false, message: 'App not found' });
 
     const tenantDb = await DbManager.getTenantDb(tenant.id);

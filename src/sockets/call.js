@@ -1,5 +1,5 @@
 const masterDb = require('../config/db');
-const dbManager = require('../utils/dbManager');
+const dbManager = require('../config/dbManager');
 
 exports.registerHandlers = (io, socket) => {
   // WebRTC Signaling through Socket.IO

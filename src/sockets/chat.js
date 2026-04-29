@@ -16,7 +16,7 @@ exports.registerHandlers = (io, socket) => {
       const { tenant_id, user_id } = socket.user;
 
       // 1. Get Tenant's Dynamic Database
-      const dbManager = require('../utils/dbManager');
+      const dbManager = require('../config/dbManager');
       const tenantDb = await dbManager.getTenantDb(tenant_id);
 
       // 2. Save to database
