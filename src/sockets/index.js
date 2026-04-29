@@ -16,16 +16,30 @@ const initSocket = (server) => {
   // Redis Pub/Sub removed for single-server configuration
   // If you scale to multiple servers in the future, re-add the Redis adapter here.
 
-  // Socket Authentication Middleware
-  io.use((socket, next) => {
-    const token = socket.handshake.auth.token;
-    if (!token) return next(new Error('Authentication error'));
+  // Socket Authentication (Simple User ID + App ID)
+  io.use(async (socket, next) => {
+    const { userId, appId } = socket.handshake.auth;
+    
+    if (!userId || !appId) {
+      return next(new Error('Authentication error: userId and appId are required'));
+    }
     
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      socket.user = decoded; // { tenant_id, user_id, external_user_id }
+      const db = require('../config/db');
+      // Look up tenant by appId
+      const [tenants] = await db.query('SELECT id FROM tenants WHERE app_id = ?', [appId]);
+      
+      if (!tenants || tenants.length === 0) {
+        return next(new Error('Authentication error: Invalid appId'));
+      }
+
+      socket.user = { 
+        user_id: userId, 
+        tenant_id: tenants[0].id 
+      };
       next();
     } catch (err) {
+      console.error('Socket Auth Error:', err.message);
       next(new Error('Authentication error'));
     }
   });
