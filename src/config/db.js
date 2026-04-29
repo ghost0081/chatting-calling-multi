@@ -5,7 +5,7 @@ const pool = mysql.createPool({
   host: 'localhost',
   port: 3306,
   user: 'u308350891_saas',
-  password: 'Coolheart@007',
+  password: 'Meet@081105',
   database: 'u308350891_saas',
   waitForConnections: true,
   connectionLimit: 20,
@@ -19,7 +19,7 @@ module.exports = {
     // In postgres, $1, $2 were used. 
     // We already need to replace those in controllers, but this ensures we return the format expected.
     const [rows, fields] = await pool.query(text, params);
-    return { rows, fields }; 
+    return { rows, fields };
   },
   execute: async (text, params) => {
     const [result] = await pool.execute(text, params);
