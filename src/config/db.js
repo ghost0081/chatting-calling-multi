@@ -2,7 +2,7 @@ const mysql = require('mysql2/promise');
 require('dotenv').config({ override: true });
 
 const pool = mysql.createPool({
-  host: 'localhost',
+  host: '127.0.0.1',
   port: 3306,
   user: 'u308350891_saas',
   password: 'Meet@081105',
