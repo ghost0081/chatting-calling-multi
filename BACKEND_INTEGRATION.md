@@ -12,8 +12,10 @@ In your Antigravity Admin Panel, you will find:
 
 ---
 
-## 2. Syncing Users
-Antigravity needs to know which users exist in your system to route messages correctly. Call this API whenever a new user signs up on your platform.
+## 2. Connecting Users
+Since we use a direct **User ID** based connection, you don't need to generate tokens. Your frontend will connect directly using the `userId` from your own database and your `appId`.
+
+Ensure your users are synced with our master registry if you want to track analytics in the Admin Panel.
 
 **Endpoint**: `POST /api/v1/tenant/users/sync`
 **Headers**: `X-App-Secret: YOUR_SECRET_KEY`
@@ -22,24 +24,6 @@ Antigravity needs to know which users exist in your system to route messages cor
 {
   "external_user_id": "YOUR_INTERNAL_USER_ID"
 }
-```
-
----
-
-## 3. Generating JWT Tokens
-Your backend must sign tokens for your users so they can connect to Antigravity.
-
-```javascript
-const jwt = require('jsonwebtoken');
-
-const token = jwt.sign(
-  { 
-    user_id: "USER_ID_FROM_YOUR_DB", 
-    app_id: "YOUR_APP_ID" 
-  },
-  "YOUR_SECRET_KEY",
-  { expiresIn: '24h' }
-);
 ```
 
 ---
