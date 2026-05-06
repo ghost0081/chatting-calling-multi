@@ -25,9 +25,12 @@ class DbManager {
         : tenants[0].db_config;
 
       // 2. Create new pool for this tenant
-      const host = config.host || '127.0.0.1';
+      let host = config.host || '127.0.0.1';
+      if (host === 'localhost' || host === '::1') {
+        host = '127.0.0.1';
+      }
       const pool = mysql.createPool({
-        host: host === 'localhost' ? '127.0.0.1' : host,
+        host: host,
         port: config.port || 3306,
         user: config.user,
         password: config.password,
