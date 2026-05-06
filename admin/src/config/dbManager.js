@@ -36,8 +36,11 @@ class DbManager {
         password: config.password,
         database: config.database,
         waitForConnections: true,
-        connectionLimit: 5,
-        queueLimit: 0
+        connectionLimit: 10,
+        queueLimit: 0,
+        connectTimeout: 20000, // 20 seconds for remote servers
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 10000
       });
 
       this.pools.set(tenantId, pool);
