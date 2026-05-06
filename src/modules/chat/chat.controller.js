@@ -23,6 +23,50 @@ exports.getMessages = async (req, res, next) => {
   }
 };
 
+exports.sendMessage = async (req, res, next) => {
+  try {
+    const { appId, conversationId, senderId, text, type, mediaUrl } = req.body;
+
+    if (!appId || !conversationId || !senderId || !text) {
+      return res.status(400).json({ success: false, message: 'Missing required fields: appId, conversationId, senderId, text' });
+    }
+
+    const tenantResult = await db.query('SELECT * FROM tenants WHERE app_id = ?', [appId]);
+    const tenant = tenantResult.rows[0];
+    if (!tenant) return res.status(404).json({ success: false, message: 'App not found' });
+
+    const tenantDb = await DbManager.getTenantDb(tenant.id);
+
+    // Save to database
+    const [insertResult] = await tenantDb.execute(
+      `INSERT INTO messages (conversation_id, sender_id, type, text, media_url, created_at) 
+       VALUES (?, ?, ?, ?, ?, NOW())`,
+      [conversationId, senderId, type || 'text', text, mediaUrl || null]
+    );
+
+    // Update conversation last_message_at
+    await tenantDb.execute(
+      `UPDATE conversations SET last_message_at = NOW() WHERE id = ?`,
+      [conversationId]
+    );
+
+    res.status(201).json({ 
+      success: true, 
+      message: {
+        id: insertResult.insertId,
+        conversation_id: conversationId,
+        sender_id: senderId,
+        type: type || 'text',
+        text: text,
+        created_at: new Date()
+      }
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getConversations = async (req, res, next) => {
   try {
     const { userId } = req.params;
