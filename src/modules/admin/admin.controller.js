@@ -30,7 +30,7 @@ exports.createTenant = async (req, res, next) => {
 
 exports.getTenants = async (req, res, next) => {
   try {
-    const result = await db.query(`SELECT id, name, app_id, public_key, status, created_at FROM tenants ORDER BY created_at DESC`);
+    const result = await db.query(`SELECT id, name, app_id, public_key, status, db_config, created_at FROM tenants ORDER BY created_at DESC`);
     res.status(200).json({ success: true, tenants: result.rows });
   } catch (error) {
     next(error);
@@ -130,6 +130,31 @@ exports.getHealth = async (req, res, next) => {
         redis_status: 'offline'
       }
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.updateTenant = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { name, db_config } = req.body;
+    const dbConfigJson = db_config ? JSON.stringify(db_config) : null;
+    await db.execute(
+      `UPDATE tenants SET name = ?, db_config = ? WHERE id = ?`,
+      [name, dbConfigJson, id]
+    );
+    res.status(200).json({ success: true, message: 'Tenant updated successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.deleteTenant = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    await db.execute(`DELETE FROM tenants WHERE id = ?`, [id]);
+    res.status(200).json({ success: true, message: 'Tenant deleted successfully' });
   } catch (error) {
     next(error);
   }
