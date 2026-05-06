@@ -12,7 +12,7 @@ exports.getMessages = async (req, res, next) => {
 
     const tenantDb = await DbManager.getTenantDb(tenant.id);
 
-    const messages = await tenantDb.execute(
+    const [messages] = await tenantDb.execute(
       'SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at DESC LIMIT 50',
       [conversationId]
     );
@@ -34,7 +34,7 @@ exports.getConversations = async (req, res, next) => {
 
     const tenantDb = await DbManager.getTenantDb(tenant.id);
 
-    const conversations = await tenantDb.execute(
+    const [conversations] = await tenantDb.execute(
       `SELECT c.* FROM conversations c
        JOIN participants p ON c.id = p.conversation_id
        WHERE p.user_id = ?
