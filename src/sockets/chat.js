@@ -21,9 +21,9 @@ exports.registerHandlers = (io, socket) => {
 
       // 2. Save to database
       const [insertResult] = await tenantDb.execute(
-        `INSERT INTO messages (conversation_id, sender_id, type, text, media_url, created_at) 
-         VALUES (?, ?, ?, ?, ?, NOW())`,
-        [conversation_id, user_id, type || 'text', text, media_url || null]
+        `INSERT INTO messages (conversation_id, sender_id, type, content, created_at) 
+         VALUES (?, ?, ?, ?, NOW())`,
+        [conversation_id, user_id, type || 'text', text]
       );
       
       // 3. Log activity to master DB
@@ -38,8 +38,7 @@ exports.registerHandlers = (io, socket) => {
         conversation_id,
         sender_id: user_id,
         type: type || 'text',
-        text,
-        media_url,
+        content: text,
         created_at: new Date()
       };
 

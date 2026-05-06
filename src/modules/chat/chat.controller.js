@@ -39,9 +39,9 @@ exports.sendMessage = async (req, res, next) => {
 
     // Save to database
     const [insertResult] = await tenantDb.execute(
-      `INSERT INTO messages (conversation_id, sender_id, type, text, media_url, created_at) 
-       VALUES (?, ?, ?, ?, ?, NOW())`,
-      [conversationId, senderId, type || 'text', text, mediaUrl || null]
+      `INSERT INTO messages (conversation_id, sender_id, type, content, created_at) 
+       VALUES (?, ?, ?, ?, NOW())`,
+      [conversationId, senderId, type || 'text', text]
     );
 
     // Update conversation last_message_at
@@ -57,7 +57,7 @@ exports.sendMessage = async (req, res, next) => {
         conversation_id: conversationId,
         sender_id: senderId,
         type: type || 'text',
-        text: text,
+        content: text,
         created_at: new Date()
       }
     });
