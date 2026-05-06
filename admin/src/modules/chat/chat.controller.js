@@ -44,7 +44,11 @@ exports.getConversations = async (req, res, next) => {
     );
 
     res.setHeader('X-Backend-Version', '1.0.1');
-    res.status(200).json({ success: true, conversations: result[0] });
+    res.status(200).json({ 
+      success: true, 
+      version: '1.0.1',
+      conversations: result[0] 
+    });
   } catch (error) {
     next(error);
   }
