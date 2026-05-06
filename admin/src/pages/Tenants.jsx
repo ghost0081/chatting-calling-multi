@@ -26,6 +26,15 @@ const Tenants = () => {
     fetchTenants();
   }, []);
 
+  const [openDropdownId, setOpenDropdownId] = useState(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setOpenDropdownId(null);
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
+
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
@@ -38,6 +47,20 @@ const Tenants = () => {
     } catch (err) {
       alert('Error creating tenant: ' + err.message);
     }
+  };
+
+  const handleDelete = async (tenantId) => {
+    if (window.confirm('Are you sure you want to delete this tenant? This action cannot be undone.')) {
+      alert('Delete API coming soon');
+      // try {
+      //   await api.delete(`/admin/tenants/${tenantId}`);
+      //   fetchTenants();
+      // } catch (err) { alert(err.message); }
+    }
+  };
+
+  const handleEdit = (tenant) => {
+    alert('Edit functionality coming soon for ' + tenant.name);
   };
 
   const copyToClipboard = (text) => {
@@ -63,14 +86,14 @@ const Tenants = () => {
 
       <div className="bg-dark-panel border border-dark-border rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left overflow-visible">
             <thead>
               <tr className="bg-dark-bg border-b border-dark-border">
                 <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Tenant Name</th>
                 <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">App Credentials</th>
                 <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">DB Config</th>
                 <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Actions</th>
+                <th className="px-6 py-4 text-xs font-semibold text-gray-400 uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-dark-border">
@@ -115,8 +138,32 @@ const Tenants = () => {
                       {tenant.status}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <button className="text-gray-500 hover:text-white"><MoreVertical size={18} /></button>
+                  <td className="px-6 py-4 text-right relative">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenDropdownId(openDropdownId === tenant.id ? null : tenant.id);
+                      }}
+                      className="text-gray-500 hover:text-white p-1 rounded-md hover:bg-dark-bg"
+                    >
+                      <MoreVertical size={18} />
+                    </button>
+                    {openDropdownId === tenant.id && (
+                      <div className="absolute right-6 top-10 mt-1 w-32 bg-dark-bg border border-dark-border rounded-lg shadow-xl z-10 py-1">
+                        <button 
+                          onClick={() => handleEdit(tenant)}
+                          className="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-dark-panel hover:text-white transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(tenant.id)}
+                          className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-dark-panel hover:text-red-300 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}
