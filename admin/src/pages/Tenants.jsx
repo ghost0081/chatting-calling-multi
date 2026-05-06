@@ -10,6 +10,8 @@ const Tenants = () => {
     name: '', 
     db_config: { host: 'localhost', user: 'root', password: '', database: '', port: 3306 } 
   });
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingTenant, setEditingTenant] = useState(null);
 
   const fetchTenants = async () => {
     try {
@@ -51,16 +53,39 @@ const Tenants = () => {
 
   const handleDelete = async (tenantId) => {
     if (window.confirm('Are you sure you want to delete this tenant? This action cannot be undone.')) {
-      alert('Delete API coming soon');
-      // try {
-      //   await api.delete(`/admin/tenants/${tenantId}`);
-      //   fetchTenants();
-      // } catch (err) { alert(err.message); }
+      try {
+        const res = await api.delete(`/admin/tenants/${tenantId}`);
+        if (res.data.success) {
+          fetchTenants();
+        }
+      } catch (err) { 
+        alert('Error deleting tenant: ' + err.message); 
+      }
     }
   };
 
   const handleEdit = (tenant) => {
-    alert('Edit functionality coming soon for ' + tenant.name);
+    // Parse db_config if it's a string (though it should be an object from API)
+    const db_config = typeof tenant.db_config === 'string' 
+      ? JSON.parse(tenant.db_config) 
+      : (tenant.db_config || { host: 'localhost', user: 'root', password: '', database: '', port: 3306 });
+
+    setEditingTenant({ ...tenant, db_config });
+    setShowEditModal(true);
+    setOpenDropdownId(null);
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await api.put(`/admin/tenants/${editingTenant.id}`, editingTenant);
+      if (res.data.success) {
+        setShowEditModal(false);
+        fetchTenants();
+      }
+    } catch (err) {
+      alert('Error updating tenant: ' + err.message);
+    }
   };
 
   const copyToClipboard = (text) => {
@@ -248,6 +273,101 @@ const Tenants = () => {
                   className="flex-1 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-medium transition-all"
                 >
                   Create Tenant
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-dark-panel border border-dark-border rounded-2xl w-full max-w-lg p-8 shadow-2xl">
+            <h2 className="text-xl font-bold text-white mb-6">Edit Tenant: {editingTenant.name}</h2>
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-1.5">Company / App Name</label>
+                <input 
+                  type="text" 
+                  required
+                  className="w-full bg-dark-bg border border-dark-border rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-brand-500 transition-colors"
+                  value={editingTenant.name}
+                  onChange={(e) => setEditingTenant({ ...editingTenant, name: e.target.value })}
+                />
+              </div>
+              
+              <div className="pt-2">
+                <p className="text-sm font-medium text-white mb-3 flex items-center">
+                  <Database size={16} className="mr-2 text-brand-400" />
+                  Client Database Configuration (BYODB)
+                </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">MySQL Host</label>
+                    <input 
+                      type="text" 
+                      className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white"
+                      value={editingTenant.db_config.host}
+                      onChange={(e) => setEditingTenant({ 
+                        ...editingTenant, 
+                        db_config: { ...editingTenant.db_config, host: e.target.value } 
+                      })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Database Name</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white"
+                      value={editingTenant.db_config.database}
+                      onChange={(e) => setEditingTenant({ 
+                        ...editingTenant, 
+                        db_config: { ...editingTenant.db_config, database: e.target.value } 
+                      })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">User</label>
+                    <input 
+                      type="text" 
+                      className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white"
+                      value={editingTenant.db_config.user}
+                      onChange={(e) => setEditingTenant({ 
+                        ...editingTenant, 
+                        db_config: { ...editingTenant.db_config, user: e.target.value } 
+                      })}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-500 block mb-1">Password</label>
+                    <input 
+                      type="password" 
+                      className="w-full bg-dark-bg border border-dark-border rounded-lg px-3 py-2 text-sm text-white"
+                      value={editingTenant.db_config.password}
+                      placeholder="Enter new password to update"
+                      onChange={(e) => setEditingTenant({ 
+                        ...editingTenant, 
+                        db_config: { ...editingTenant.db_config, password: e.target.value } 
+                      })}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-6">
+                <button 
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-dark-border text-gray-400 hover:bg-dark-bg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-medium transition-all"
+                >
+                  Update Tenant
                 </button>
               </div>
             </form>
