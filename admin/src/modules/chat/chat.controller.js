@@ -12,12 +12,13 @@ exports.getMessages = async (req, res, next) => {
 
     const tenantDb = await DbManager.getTenantDb(tenant.id);
 
-    const [messages] = await tenantDb.execute(
+    const result = await tenantDb.execute(
       'SELECT * FROM messages WHERE conversation_id = ? ORDER BY created_at DESC LIMIT 50',
       [conversationId]
     );
 
-    res.status(200).json({ success: true, messages });
+    res.setHeader('X-Backend-Version', '1.0.1');
+    res.status(200).json({ success: true, messages: result[0] });
   } catch (error) {
     next(error);
   }
@@ -34,7 +35,7 @@ exports.getConversations = async (req, res, next) => {
 
     const tenantDb = await DbManager.getTenantDb(tenant.id);
 
-    const [conversations] = await tenantDb.execute(
+    const result = await tenantDb.execute(
       `SELECT c.* FROM conversations c
        JOIN participants p ON c.id = p.conversation_id
        WHERE p.user_id = ?
@@ -42,7 +43,8 @@ exports.getConversations = async (req, res, next) => {
       [userId]
     );
 
-    res.status(200).json({ success: true, conversations });
+    res.setHeader('X-Backend-Version', '1.0.1');
+    res.status(200).json({ success: true, conversations: result[0] });
   } catch (error) {
     next(error);
   }
