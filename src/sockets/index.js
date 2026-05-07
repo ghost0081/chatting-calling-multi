@@ -18,7 +18,7 @@ const initSocket = (server) => {
 
   // Socket Authentication (Simple User ID + App ID)
   io.use(async (socket, next) => {
-    const { userId, appId } = socket.handshake.auth;
+    const { userId, appId, userType, username, avatarUrl } = socket.handshake.auth;
     
     if (!userId || !appId) {
       return next(new Error('Authentication error: userId and appId are required'));
@@ -26,6 +26,8 @@ const initSocket = (server) => {
     
     try {
       const db = require('../config/db');
+      const DbManager = require('../config/dbManager');
+
       // Look up tenant by appId
       const tenantsResult = await db.query('SELECT id FROM tenants WHERE app_id = ?', [appId]);
       const tenants = tenantsResult.rows;
@@ -34,9 +36,26 @@ const initSocket = (server) => {
         return next(new Error('Authentication error: Invalid appId'));
       }
 
+      const tenantId = tenants[0].id;
+      const tenantDb = await DbManager.getTenantDb(tenantId);
+
+      // Sync user to tenant database
+      await tenantDb.execute(
+        `INSERT INTO tenant_users (user_id, username, avatar_url, user_type, is_online, last_seen) 
+         VALUES (?, ?, ?, ?, true, NOW())
+         ON DUPLICATE KEY UPDATE 
+         username = VALUES(username), 
+         avatar_url = VALUES(avatar_url),
+         user_type = VALUES(user_type),
+         is_online = true, 
+         last_seen = NOW()`,
+        [userId, username || 'Unknown', avatarUrl || null, userType || 'user']
+      );
+
       socket.user = { 
         user_id: userId, 
-        tenant_id: tenants[0].id 
+        tenant_id: tenantId,
+        user_type: userType || 'user'
       };
       next();
     } catch (err) {

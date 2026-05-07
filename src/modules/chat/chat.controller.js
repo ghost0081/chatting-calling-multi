@@ -78,15 +78,59 @@ exports.getConversations = async (req, res, next) => {
 
     const tenantDb = await DbManager.getTenantDb(tenant.id);
 
+    // Get conversations with details of the other participant
     const [conversations] = await tenantDb.execute(
-      `SELECT c.* FROM conversations c
-       JOIN participants p ON c.id = p.conversation_id
-       WHERE p.user_id = ?
+      `SELECT 
+        c.*,
+        u.username as other_username,
+        u.avatar_url as other_avatar,
+        u.user_type as other_type,
+        u.user_id as other_user_id
+       FROM conversations c
+       JOIN participants p1 ON c.id = p1.conversation_id
+       JOIN participants p2 ON c.id = p2.conversation_id
+       JOIN tenant_users u ON p2.user_id = u.user_id
+       WHERE p1.user_id = ? AND p2.user_id != ?
        ORDER BY c.last_message_at DESC`,
-      [userId]
+      [userId, userId]
     );
 
     res.status(200).json({ success: true, conversations });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getContacts = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const { appId } = req.query;
+
+    const tenantResult = await db.query('SELECT * FROM tenants WHERE app_id = ?', [appId]);
+    const tenant = tenantResult.rows[0];
+    if (!tenant) return res.status(404).json({ success: false, message: 'App not found' });
+
+    const tenantDb = await DbManager.getTenantDb(tenant.id);
+
+    // 1. Get current user type
+    const [currentUser] = await tenantDb.execute(
+      'SELECT user_type FROM tenant_users WHERE user_id = ?',
+      [userId]
+    );
+
+    if (currentUser.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const typeToFetch = currentUser[0].user_type === 'user' ? 'astrologer' : 'user';
+
+    // 2. Fetch all users of the opposite type
+    const [contacts] = await tenantDb.execute(
+      'SELECT user_id, username, avatar_url, user_type, is_online FROM tenant_users WHERE user_type = ?',
+      [typeToFetch]
+    );
+
+    res.status(200).json({ success: true, contacts });
   } catch (error) {
     next(error);
   }
@@ -106,7 +150,24 @@ exports.getOrCreateConversation = async (req, res, next) => {
 
     const tenantDb = await DbManager.getTenantDb(tenant.id);
 
-    // 1. Check if direct conversation exists
+    // 1. Check user types to enforce restriction
+    const [users] = await tenantDb.execute(
+      'SELECT user_id, user_type FROM tenant_users WHERE user_id IN (?, ?)',
+      [participantIds[0], participantIds[1]]
+    );
+
+    if (users.length < 2) {
+      return res.status(400).json({ success: false, message: 'One or both users not found in the platform' });
+    }
+
+    if (users[0].user_type === users[1].user_type) {
+      return res.status(403).json({ 
+        success: false, 
+        message: `Restriction: ${users[0].user_type}s cannot chat with other ${users[0].user_type}s` 
+      });
+    }
+
+    // 2. Check if direct conversation exists
     const [existing] = await tenantDb.execute(
       `SELECT p1.conversation_id FROM participants p1
        JOIN participants p2 ON p1.conversation_id = p2.conversation_id
@@ -119,13 +180,13 @@ exports.getOrCreateConversation = async (req, res, next) => {
       return res.status(200).json({ success: true, conversationId: existing[0].conversation_id });
     }
 
-    // 2. Create new conversation
+    // 3. Create new conversation
     const [result] = await tenantDb.execute(
       "INSERT INTO conversations (type) VALUES ('direct')"
     );
     const conversationId = result.insertId;
 
-    // 3. Add participants
+    // 4. Add participants
     await tenantDb.execute(
       "INSERT INTO participants (conversation_id, user_id) VALUES (?, ?), (?, ?)",
       [conversationId, participantIds[0], conversationId, participantIds[1]]

@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS tenant_users (
     user_id VARCHAR(255) PRIMARY KEY,
     username VARCHAR(255),
     avatar_url TEXT,
+    user_type ENUM('user', 'astrologer') DEFAULT 'user',
     is_online BOOLEAN DEFAULT FALSE,
     last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

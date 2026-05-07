@@ -6,5 +6,6 @@ router.get('/messages/:conversationId', chatController.getMessages);
 router.post('/messages', chatController.sendMessage);
 router.get('/conversations/:userId', chatController.getConversations);
 router.post('/conversations/direct', chatController.getOrCreateConversation);
+router.get('/contacts/:userId', chatController.getContacts);
 
 module.exports = router;
