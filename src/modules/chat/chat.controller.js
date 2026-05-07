@@ -90,7 +90,7 @@ exports.getConversations = async (req, res, next) => {
        FROM conversations c
        JOIN participants p1 ON c.id = p1.conversation_id
        JOIN participants p2 ON c.id = p2.conversation_id
-       JOIN users u ON p2.id = u.id
+       JOIN users u ON p2.user_id = u.id
        WHERE p1.user_id = ? AND p2.user_id != ?
        ORDER BY c.last_message_at DESC`,
       [userId, userId]
