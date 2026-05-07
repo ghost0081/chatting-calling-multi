@@ -78,25 +78,60 @@ exports.getConversations = async (req, res, next) => {
 
     const tenantDb = await DbManager.getTenantDb(tenant.id);
 
-    // Get conversations with details of the other participant from the 'users' table
-    const [conversations] = await tenantDb.execute(
-      `SELECT 
-        c.*,
-        u.firstName as other_first_name,
-        u.lastName as other_last_name,
-        u.profileImage as other_avatar,
-        u.userType as other_type,
-        u.id as other_user_id
-       FROM conversations c
-       JOIN participants p1 ON c.id = p1.conversation_id
-       JOIN participants p2 ON c.id = p2.conversation_id
-       JOIN users u ON p2.user_id = u.id
-       WHERE p1.user_id = ? AND p2.user_id != ?
-       ORDER BY c.last_message_at DESC`,
-      [userId, userId]
+    // 1. Get current user type
+    const [currentUser] = await tenantDb.execute(
+      'SELECT userType FROM users WHERE id = ?',
+      [userId]
     );
 
-    res.status(200).json({ success: true, conversations });
+    if (currentUser.length === 0) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const isRegularUser = currentUser[0].userType === 'users';
+
+    if (isRegularUser) {
+      // For regular users: Show ALL Astrologers + their last conversation info if exists
+      const [astrologers] = await tenantDb.execute(
+        `SELECT 
+          u.id as other_user_id,
+          u.firstName as other_first_name,
+          u.lastName as other_last_name,
+          u.profileImage as other_avatar,
+          u.userType as other_type,
+          c.id as conversation_id,
+          c.last_message_at,
+          (SELECT content FROM messages WHERE conversation_id = c.id ORDER BY created_at DESC LIMIT 1) as last_message
+         FROM users u
+         LEFT JOIN participants p1 ON u.id = p1.user_id
+         LEFT JOIN participants p2 ON p1.conversation_id = p2.conversation_id AND p2.user_id = ?
+         LEFT JOIN conversations c ON p1.conversation_id = c.id
+         WHERE u.userType = 'astrologer'
+         GROUP BY u.id
+         ORDER BY c.last_message_at DESC, u.firstName ASC`,
+        [userId]
+      );
+      return res.status(200).json({ success: true, conversations: astrologers });
+    } else {
+      // For Astrologers: Only show users who have started a conversation with them
+      const [conversations] = await tenantDb.execute(
+        `SELECT 
+          c.*,
+          u.firstName as other_first_name,
+          u.lastName as other_last_name,
+          u.profileImage as other_avatar,
+          u.userType as other_type,
+          u.id as other_user_id
+         FROM conversations c
+         JOIN participants p1 ON c.id = p1.conversation_id
+         JOIN participants p2 ON c.id = p2.conversation_id
+         JOIN users u ON p2.user_id = u.id
+         WHERE p1.user_id = ? AND p2.user_id != ?
+         ORDER BY c.last_message_at DESC`,
+        [userId, userId]
+      );
+      return res.status(200).json({ success: true, conversations });
+    }
   } catch (error) {
     next(error);
   }
