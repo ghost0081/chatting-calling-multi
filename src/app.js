@@ -34,7 +34,8 @@ const publicDir = path.join(__dirname, '..', 'public');
 app.use(express.static(publicDir));
 
 // Catch-all: send React index.html for all non-API routes
-app.get('*', (req, res) => {
+app.use((req, res, next) => {
+  if (req.originalUrl.startsWith('/api')) return next();
   res.sendFile(path.join(publicDir, 'index.html'));
 });
 
