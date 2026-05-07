@@ -7,6 +7,7 @@ router.use(verifyAdmin); // Protect all admin routes
 
 router.post('/tenants', adminController.createTenant);
 router.get('/tenants', adminController.getTenants);
+router.get('/tenants/:id/users', adminController.getTenantUsers);
 router.put('/tenants/:id/status', adminController.updateTenantStatus);
 router.put('/tenants/:id', adminController.updateTenant);
 router.delete('/tenants/:id', adminController.deleteTenant);

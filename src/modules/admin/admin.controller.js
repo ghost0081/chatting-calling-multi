@@ -159,3 +159,19 @@ exports.deleteTenant = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.getTenantUsers = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const DbManager = require('../../config/dbManager');
+    const tenantDb = await DbManager.getTenantDb(id);
+
+    const [users] = await tenantDb.execute(
+      'SELECT user_id, username, avatar_url, user_type, is_online, last_seen FROM tenant_users ORDER BY last_seen DESC'
+    );
+
+    res.status(200).json({ success: true, users });
+  } catch (error) {
+    next(error);
+  }
+};

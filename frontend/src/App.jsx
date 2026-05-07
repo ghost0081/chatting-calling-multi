@@ -380,6 +380,79 @@ function DeleteModal({ tenant, onClose, onSuccess }) {
   )
 }
 
+// ─── VIEW USERS MODAL ─────────────────────────────────────────────────────────
+function ViewUsersModal({ tenant, onClose }) {
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch(`${API_BASE}/tenants/${tenant.id}/users`, { headers: getHeaders() })
+      .then(r => r.json())
+      .then(d => { if (d.success) setUsers(d.users); setLoading(false) })
+  }, [tenant.id])
+
+  return (
+    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal" style={{ maxWidth: 800 }}>
+        <div className="modal-header">
+          <div>
+            <div className="modal-title">👥 Users in {tenant.name}</div>
+            <div className="modal-subtitle">View all registered users and their types</div>
+          </div>
+          <button className="modal-close" onClick={onClose}>✕</button>
+        </div>
+        <div className="modal-body" style={{ padding: 0 }}>
+          <div className="table-wrapper" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+            {loading ? <div className="loading-center"><div className="spinner" /></div> : (
+              <table>
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Last Seen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map(u => (
+                    <tr key={u.user_id}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <div className="admin-avatar" style={{ width: 30, height: 30, fontSize: 12 }}>{u.username[0]}</div>
+                          <div>
+                            <div style={{ fontWeight: 600 }}>{u.username}</div>
+                            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{u.user_id}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <span className={`badge ${u.user_type === 'astrologer' ? 'badge-purple' : 'badge-yellow'}`}>
+                          {u.user_type}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge ${u.is_online ? 'badge-green' : 'badge-red'}`}>
+                          {u.is_online ? 'Online' : 'Offline'}
+                        </span>
+                      </td>
+                      <td style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                        {new Date(u.last_seen).toLocaleString()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-primary" onClick={onClose}>Close</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ─── TENANTS PAGE ──────────────────────────────────────────────────────────────
 function TenantsPage({ addToast }) {
   const [tenants, setTenants] = useState([])
@@ -387,6 +460,7 @@ function TenantsPage({ addToast }) {
   const [showCreate, setShowCreate] = useState(false)
   const [editTenant, setEditTenant] = useState(null)
   const [deleteTenant, setDeleteTenant] = useState(null)
+  const [viewUsers, setViewUsers] = useState(null)
 
   const fetchTenants = async () => {
     try {
@@ -495,6 +569,7 @@ function TenantsPage({ addToast }) {
                         </td>
                         <td>
                           <div className="actions">
+                            <button className="btn btn-secondary btn-sm" onClick={() => setViewUsers(t)}>Users</button>
                             <button className="btn btn-secondary btn-sm" onClick={() => setEditTenant(t)}>Edit</button>
                             <button className="btn btn-secondary btn-sm" onClick={() => toggleStatus(t)}>
                               {t.status === 'active' ? 'Suspend' : 'Activate'}
@@ -515,6 +590,7 @@ function TenantsPage({ addToast }) {
       {showCreate && <CreateTenantModal onClose={() => setShowCreate(false)} onSuccess={handleSuccess} />}
       {editTenant && <EditTenantModal tenant={editTenant} onClose={() => setEditTenant(null)} onSuccess={handleSuccess} />}
       {deleteTenant && <DeleteModal tenant={deleteTenant} onClose={() => setDeleteTenant(null)} onSuccess={handleSuccess} />}
+      {viewUsers && <ViewUsersModal tenant={viewUsers} onClose={() => setViewUsers(null)} />}
     </>
   )
 }
