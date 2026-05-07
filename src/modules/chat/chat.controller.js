@@ -78,18 +78,19 @@ exports.getConversations = async (req, res, next) => {
 
     const tenantDb = await DbManager.getTenantDb(tenant.id);
 
-    // Get conversations with details of the other participant
+    // Get conversations with details of the other participant from the 'users' table
     const [conversations] = await tenantDb.execute(
       `SELECT 
         c.*,
-        u.username as other_username,
-        u.avatar_url as other_avatar,
-        u.user_type as other_type,
-        u.user_id as other_user_id
+        u.firstName as other_first_name,
+        u.lastName as other_last_name,
+        u.profileImage as other_avatar,
+        u.userType as other_type,
+        u.id as other_user_id
        FROM conversations c
        JOIN participants p1 ON c.id = p1.conversation_id
        JOIN participants p2 ON c.id = p2.conversation_id
-       JOIN tenant_users u ON p2.user_id = u.user_id
+       JOIN users u ON p2.id = u.id
        WHERE p1.user_id = ? AND p2.user_id != ?
        ORDER BY c.last_message_at DESC`,
       [userId, userId]
@@ -112,21 +113,21 @@ exports.getContacts = async (req, res, next) => {
 
     const tenantDb = await DbManager.getTenantDb(tenant.id);
 
-    // 1. Get current user type
+    // 1. Get current user type from 'users' table
     const [currentUser] = await tenantDb.execute(
-      'SELECT user_type FROM tenant_users WHERE user_id = ?',
+      'SELECT userType FROM users WHERE id = ?',
       [userId]
     );
 
     if (currentUser.length === 0) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res.status(404).json({ success: false, message: 'User not found in client database' });
     }
 
-    const typeToFetch = currentUser[0].user_type === 'user' ? 'astrologer' : 'user';
+    const typeToFetch = currentUser[0].userType === 'users' ? 'astrologer' : 'users';
 
     // 2. Fetch all users of the opposite type
     const [contacts] = await tenantDb.execute(
-      'SELECT user_id, username, avatar_url, user_type, is_online FROM tenant_users WHERE user_type = ?',
+      'SELECT id as user_id, firstName, lastName, profileImage as avatar_url, userType as user_type FROM users WHERE userType = ? LIMIT 100',
       [typeToFetch]
     );
 
@@ -138,7 +139,7 @@ exports.getContacts = async (req, res, next) => {
 
 exports.getOrCreateConversation = async (req, res, next) => {
   try {
-    const { appId, participantIds } = req.body; // e.g. ["user1", "user2"]
+    const { appId, participantIds } = req.body; // e.g. ["1", "438"]
 
     if (!participantIds || participantIds.length !== 2) {
       return res.status(400).json({ success: false, message: 'Exactly 2 participants are required for direct chat' });
@@ -150,20 +151,22 @@ exports.getOrCreateConversation = async (req, res, next) => {
 
     const tenantDb = await DbManager.getTenantDb(tenant.id);
 
-    // 1. Check user types to enforce restriction
+    // 1. Check user types from the client's 'users' table
     const [users] = await tenantDb.execute(
-      'SELECT user_id, user_type FROM tenant_users WHERE user_id IN (?, ?)',
+      'SELECT id, userType FROM users WHERE id IN (?, ?)',
       [participantIds[0], participantIds[1]]
     );
 
     if (users.length < 2) {
-      return res.status(400).json({ success: false, message: 'One or both users not found in the platform' });
+      return res.status(400).json({ success: false, message: 'One or both users not found in the client database' });
     }
 
-    if (users[0].user_type === users[1].user_type) {
+    // Role check: Ensure one is astrologer and one is user
+    // Note: In your DB 'users' seems to be the type for regular users
+    if (users[0].userType === users[1].userType) {
       return res.status(403).json({ 
         success: false, 
-        message: `Restriction: ${users[0].user_type}s cannot chat with other ${users[0].user_type}s` 
+        message: `Restriction: ${users[0].userType}s cannot chat with other ${users[0].userType}s` 
       });
     }
 
