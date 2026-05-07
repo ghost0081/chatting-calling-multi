@@ -1,22 +1,20 @@
 const { Server } = require('socket.io');
-const jwt = require('jsonwebtoken');
-const chatSocket = require('./chat');
-const callSocket = require('./call');
+const db = require('../config/db');
+const DbManager = require('../config/dbManager');
+const state = require('./core/socket.state');
+const socketEngine = require('./core/socket.index');
 
 let io;
 
 const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: '*', // Restrict this in production
+      origin: '*', 
       methods: ['GET', 'POST']
     }
   });
 
-  // Redis Pub/Sub removed for single-server configuration
-  // If you scale to multiple servers in the future, re-add the Redis adapter here.
-
-  // Socket Authentication (Simple User ID + App ID)
+  // Socket Authentication & Sync (Moved back for visibility)
   io.use(async (socket, next) => {
     const { userId, appId, userType, username, avatarUrl } = socket.handshake.auth;
     
@@ -25,21 +23,14 @@ const initSocket = (server) => {
     }
     
     try {
-      const db = require('../config/db');
-      const DbManager = require('../config/dbManager');
-
-      // Look up tenant by appId
+      // 1. Validate Tenant
       const tenantsResult = await db.query('SELECT id FROM tenants WHERE app_id = ?', [appId]);
-      const tenants = tenantsResult.rows;
+      const tenant = tenantsResult.rows[0];
       
-      if (!tenants || tenants.length === 0) {
-        return next(new Error('Authentication error: Invalid appId'));
-      }
+      if (!tenant) return next(new Error('Authentication error: Invalid appId'));
 
-      const tenantId = tenants[0].id;
-      const tenantDb = await DbManager.getTenantDb(tenantId);
-
-      // Sync user to tenant database
+      // 2. Sync User to Tenant Database
+      const tenantDb = await DbManager.getTenantDb(tenant.id);
       await tenantDb.execute(
         `INSERT INTO tenant_users (user_id, username, avatar_url, user_type, is_online, last_seen) 
          VALUES (?, ?, ?, ?, true, NOW())
@@ -52,11 +43,17 @@ const initSocket = (server) => {
         [userId, username || 'Unknown', avatarUrl || null, userType || 'user']
       );
 
-      socket.user = { 
-        user_id: userId, 
-        tenant_id: tenantId,
-        user_type: userType || 'user'
+      // 3. Attach metadata to socket session
+      socket.user = {
+        id: userId,
+        tenantId: tenant.id,
+        appId: appId,
+        type: userType || 'user'
       };
+
+      // 4. Register in memory state
+      state.addUserSocket(userId, socket.id);
+
       next();
     } catch (err) {
       console.error('Socket Auth Error:', err.message);
@@ -64,29 +61,8 @@ const initSocket = (server) => {
     }
   });
 
-  io.on('connection', (socket) => {
-    console.log(`User connected: ${socket.user.user_id} (Tenant: ${socket.user.tenant_id})`);
-
-    // Join Tenant Room
-    socket.join(`tenant:${socket.user.tenant_id}`);
-    
-    // Join User Room
-    socket.join(`user:${socket.user.user_id}`);
-
-    // Update online status
-    // TODO: Update DB tenant_users is_online = true
-
-    // Register Chat Handlers
-    chatSocket.registerHandlers(io, socket);
-
-    // Register Call Handlers
-    callSocket.registerHandlers(io, socket);
-
-    socket.on('disconnect', () => {
-      console.log(`User disconnected: ${socket.user.user_id}`);
-      // TODO: Update DB tenant_users is_online = false, last_seen
-    });
-  });
+  // Initialize the rest of the production-grade engine (Routing, Handlers, Cleanup)
+  socketEngine(io);
 };
 
 const getIo = () => {
@@ -95,3 +71,5 @@ const getIo = () => {
 };
 
 module.exports = { initSocket, getIo };
+
+

@@ -1,0 +1,91 @@
+/**
+ * Socket State Manager
+ * Optimized for O(1) lookups and multi-device support.
+ * Designed to be easily replaced by Redis for horizontal scaling.
+ */
+
+class SocketStateManager {
+  constructor() {
+    // Mapping: userId -> Set of socketIds (supports multi-device)
+    this.userSockets = new Map();
+    // Mapping: socketId -> userId (for fast reverse lookup on disconnect)
+    this.socketToUser = new Map();
+    // Mapping: userId -> { lastSeen: Date, status: 'online' | 'offline' }
+    this.presence = new Map();
+    // Mapping: conversationId -> Set of userIds who are typing
+    this.typingStates = new Map();
+  }
+
+  // --- Socket / User Management ---
+
+  addUserSocket(userId, socketId) {
+    if (!this.userSockets.has(userId)) {
+      this.userSockets.set(userId, new Set());
+    }
+    this.userSockets.get(userId).add(socketId);
+    this.socketToUser.set(socketId, userId);
+    this.presence.set(userId, { status: 'online', lastSeen: new Date() });
+  }
+
+  removeSocket(socketId) {
+    const userId = this.socketToUser.get(socketId);
+    if (!userId) return null;
+
+    this.socketToUser.delete(socketId);
+    
+    const userSocks = this.userSockets.get(userId);
+    if (userSocks) {
+      userSocks.delete(socketId);
+      if (userSocks.size === 0) {
+        this.userSockets.delete(userId);
+        this.presence.set(userId, { status: 'offline', lastSeen: new Date() });
+        return { userId, lastSocket: true };
+      }
+    }
+    return { userId, lastSocket: false };
+  }
+
+  getSocketsByUserId(userId) {
+    const sockets = this.userSockets.get(userId);
+    return sockets ? Array.from(sockets) : [];
+  }
+
+  isUserOnline(userId) {
+    return this.userSockets.has(userId);
+  }
+
+  // --- Typing Indicators ---
+
+  setTyping(conversationId, userId) {
+    if (!this.typingStates.has(conversationId)) {
+      this.typingStates.set(conversationId, new Set());
+    }
+    this.typingStates.get(conversationId).add(userId);
+  }
+
+  removeTyping(conversationId, userId) {
+    const typers = this.typingStates.get(conversationId);
+    if (typers) {
+      typers.delete(userId);
+      if (typers.size === 0) this.typingStates.delete(conversationId);
+    }
+  }
+
+  getTypingUsers(conversationId) {
+    const typers = this.typingStates.get(conversationId);
+    return typers ? Array.from(typers) : [];
+  }
+
+  // --- Cleanup ---
+
+  clearUserTyping(userId) {
+    for (const [convId, typers] of this.typingStates) {
+      if (typers.has(userId)) {
+        typers.delete(userId);
+        if (typers.size === 0) this.typingStates.delete(convId);
+      }
+    }
+  }
+}
+
+module.exports = new SocketStateManager();
