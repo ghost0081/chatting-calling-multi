@@ -11,6 +11,7 @@ Please rename these events in your frontend code:
 | :--- | :--- | :--- |
 | `chat:send` | `send_message` | Sending a message |
 | `chat:message` | `new_message` | Receiving a message |
+| N/A | `unread_update` | Notification of unread message count |
 | N/A | `message_delivered` | Mark message as delivered |
 | N/A | `message_read` | Mark conversation as read |
 | N/A | `typing_start` | Start typing notification |

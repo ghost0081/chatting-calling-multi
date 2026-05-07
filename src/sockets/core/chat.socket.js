@@ -49,15 +49,26 @@ module.exports = (io, socket) => {
         [conversationId]
       );
 
-      // 4. Real-time Delivery to other participants
-      participants.forEach(p => {
+      // 4. Real-time Delivery & Unread Updates
+      for (const p of participants) {
         if (p.user_id !== userId) {
           const targetSockets = state.getSocketsByUserId(p.user_id);
+          
+          // Get unread count for this specific conversation for the recipient
+          const [unread] = await tenantDb.execute(
+            "SELECT COUNT(*) as count FROM messages WHERE conversation_id = ? AND sender_id != ? AND status != 'read'",
+            [conversationId, p.user_id]
+          );
+
           targetSockets.forEach(sid => {
             io.to(sid).emit('new_message', savedMessage);
+            io.to(sid).emit('unread_update', { 
+              conversationId, 
+              unreadCount: unread[0].count 
+            });
           });
         }
-      });
+      }
 
       // 5. Success Acknowledgement
       sendAck(callback, true, savedMessage);
@@ -115,6 +126,7 @@ module.exports = (io, socket) => {
         if (p.user_id !== userId) {
           state.getSocketsByUserId(p.user_id).forEach(sid => {
             io.to(sid).emit('conversation_read', { conversationId, readerId: userId });
+            io.to(sid).emit('unread_update', { conversationId, unreadCount: 0 });
           });
         }
       });
