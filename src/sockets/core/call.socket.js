@@ -1,3 +1,4 @@
+const db = require('../../config/db');
 const DbManager = require('../../config/dbManager');
 const state = require('./socket.state');
 const { sendAck } = require('./socket.utils');
@@ -35,6 +36,12 @@ module.exports = (io, socket) => {
         [userId, receiverId, type]
       );
       const callId = result.insertId;
+
+      // Log to Master System Logs (for Admin Dashboard)
+      await db.execute(
+        'INSERT INTO system_logs (tenant_id, event_type, details, status) VALUES (?, ?, ?, ?)',
+        [tenantId, 'Call Started', `Call ID: ${callId} | ${type}`, 'success']
+      );
 
       // 4. Register in State Manager
       const session = { callId, callerId: userId, receiverId, type, status: 'ringing', startTime: null };
@@ -125,6 +132,12 @@ module.exports = (io, socket) => {
     await tenantDb.execute(
       "UPDATE call_sessions SET status = ?, ended_at = NOW(), duration_seconds = ? WHERE id = ?",
       [status, duration, callId]
+    );
+
+    // Log to Master System Logs (for Admin Dashboard)
+    await db.execute(
+      'INSERT INTO system_logs (tenant_id, event_type, details, status) VALUES (?, ?, ?, ?)',
+      [tenantId, 'Call Ended', `Call ID: ${callId} | Status: ${status} | Dur: ${duration}s`, 'success']
     );
 
     // 2. Clear State

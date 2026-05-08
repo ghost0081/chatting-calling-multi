@@ -1,3 +1,4 @@
+const db = require('../../config/db');
 const DbManager = require('../../config/dbManager');
 const state = require('./socket.state');
 const { sendAck, formatMessage, validatePayload } = require('./socket.utils');
@@ -31,6 +32,12 @@ module.exports = (io, socket) => {
         `INSERT INTO messages (conversation_id, sender_id, type, content, status, created_at) 
          VALUES (?, ?, ?, ?, 'sent', NOW())`,
         [conversationId, userId, type, content]
+      );
+
+      // Log to Master System Logs (for Admin Dashboard)
+      await db.execute(
+        'INSERT INTO system_logs (tenant_id, event_type, details, status) VALUES (?, ?, ?, ?)',
+        [tenantId, 'Message Sent', `Msg ID: ${result.insertId} | Conv: ${conversationId}`, 'success']
       );
 
       const savedMessage = formatMessage({
