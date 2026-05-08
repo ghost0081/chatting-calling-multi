@@ -14,6 +14,10 @@ class SocketStateManager {
     this.presence = new Map();
     // Mapping: conversationId -> Set of userIds who are typing
     this.typingStates = new Map();
+    // Mapping: callId -> { callerId, receiverId, type, status, startTime }
+    this.activeCalls = new Map();
+    // Mapping: userId -> callId (to prevent double-calling)
+    this.busyUsers = new Map();
   }
 
   // --- Socket / User Management ---

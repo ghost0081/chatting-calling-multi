@@ -1,5 +1,7 @@
 const auth = require('./auth.socket');
 const chat = require('./chat.socket');
+const call = require('./call.socket');
+const signaling = require('./signaling.socket');
 const presence = require('./presence.socket');
 const rateLimit = require('./rateLimiter');
 const { sendAck } = require('./socket.utils');

@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS conversations (
     id INT AUTO_INCREMENT PRIMARY KEY,
     type ENUM('direct', 'group') DEFAULT 'direct',
     name VARCHAR(255),
+    last_message_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -28,6 +29,7 @@ CREATE TABLE IF NOT EXISTS messages (
     sender_id VARCHAR(255),
     content TEXT,
     type ENUM('text', 'image', 'file', 'voice') DEFAULT 'text',
+    status ENUM('sent', 'delivered', 'read') DEFAULT 'sent',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -36,7 +38,8 @@ CREATE TABLE IF NOT EXISTS call_sessions (
     caller_id VARCHAR(255),
     receiver_id VARCHAR(255),
     type ENUM('audio', 'video') DEFAULT 'audio',
-    status ENUM('initiated', 'ongoing', 'completed', 'rejected', 'missed') DEFAULT 'initiated',
+    status ENUM('initiated', 'ringing', 'ongoing', 'completed', 'rejected', 'missed', 'busy', 'cancelled') DEFAULT 'initiated',
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    ended_at TIMESTAMP NULL
+    ended_at TIMESTAMP NULL,
+    duration_seconds INT DEFAULT 0
 );
