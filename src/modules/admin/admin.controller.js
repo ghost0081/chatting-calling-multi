@@ -51,19 +51,41 @@ exports.updateTenantStatus = async (req, res, next) => {
 
 exports.getDashboardStats = async (req, res, next) => {
   try {
-    // Highly optimized queries for admin dashboard
-    const tenantsCount = await db.query(`SELECT COUNT(*) FROM tenants`);
-    const activeUsersCount = await db.query(`SELECT COUNT(*) FROM tenant_users WHERE is_online = true`);
-    const totalMessages = await db.query(`SELECT COUNT(*) FROM messages`);
-    const totalCalls = await db.query(`SELECT COUNT(*) FROM call_sessions`);
+    const DbManager = require('../../config/dbManager');
+    
+    // 1. Get total tenants from master DB
+    const tenantsResult = await db.query(`SELECT id, db_config FROM tenants WHERE status = 'active'`);
+    const tenants = tenantsResult.rows;
+    
+    let totalActiveUsers = 0;
+    let totalMessages = 0;
+    let totalCalls = 0;
+
+    // 2. Aggregate stats from each tenant DB
+    for (const tenant of tenants) {
+      try {
+        const tenantDb = await DbManager.getTenantDb(tenant.id);
+        
+        const [users] = await tenantDb.execute(`SELECT COUNT(*) as count FROM tenant_users WHERE is_online = true`);
+        const [msgs] = await tenantDb.execute(`SELECT COUNT(*) as count FROM messages`);
+        const [calls] = await tenantDb.execute(`SELECT COUNT(*) as count FROM call_sessions`);
+
+        totalActiveUsers += parseInt(users[0].count) || 0;
+        totalMessages += parseInt(msgs[0].count) || 0;
+        totalCalls += parseInt(calls[0].count) || 0;
+      } catch (err) {
+        console.error(`Error fetching stats for tenant ${tenant.id}:`, err.message);
+        // Skip failing tenants to keep dashboard alive
+      }
+    }
 
     res.status(200).json({
       success: true,
       stats: {
-        total_clients: parseInt(tenantsCount.rows[0]['COUNT(*)']),
-        active_users: parseInt(activeUsersCount.rows[0]['COUNT(*)']),
-        total_messages: parseInt(totalMessages.rows[0]['COUNT(*)']),
-        total_calls: parseInt(totalCalls.rows[0]['COUNT(*)'])
+        total_clients: tenants.length,
+        active_users: totalActiveUsers,
+        total_messages: totalMessages,
+        total_calls: totalCalls
       }
     });
   } catch (error) {
