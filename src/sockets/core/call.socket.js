@@ -11,12 +11,15 @@ module.exports = (io, socket) => {
 
   // --- START CALL ---
   socket.on('call:start', async (payload, callback) => {
-    const { receiverId, type = 'audio' } = payload;
+    let { receiverId, type = 'audio' } = payload;
+    const callerId = String(userId);
+    receiverId = String(receiverId);
+
     if (!receiverId) return sendAck(callback, false, null, 'receiverId required', 'INVALID_PAYLOAD');
 
     try {
       // 1. Check if caller is already busy
-      if (state.busyUsers.has(userId)) {
+      if (state.busyUsers.has(callerId)) {
         return sendAck(callback, false, null, 'You are already in a call', 'BUSY');
       }
 

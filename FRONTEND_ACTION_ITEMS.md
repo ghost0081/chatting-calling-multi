@@ -17,6 +17,14 @@ Please rename these events in your frontend code:
 | N/A | `typing_start` | Start typing notification |
 | N/A | `typing_stop` | Stop typing notification |
 | N/A | `user_typing` | Listening for others typing |
+| `call:start` | `call:start` | Start a new call |
+| `call:incoming` | `call:incoming` | Incoming call notification |
+| `call:accept` | `call:accept` | Accept an incoming call |
+| `call:reject` | `call:reject` | Reject an incoming call |
+| `call:end` | `call:end` | Hang up a call |
+| `call:offer` | `call:offer` | Forward WebRTC Offer |
+| `call:answer` | `call:answer` | Forward WebRTC Answer |
+| `call:ice` | `call:ice` | Forward ICE Candidate |
 
 ---
 

@@ -28,6 +28,8 @@ module.exports = (io) => {
     // Load Modular Handlers
     chat(io, socket);
     presence(io, socket);
+    call(io, socket);
+    signaling(io, socket);
 
     // Backward compatibility for existing call handlers
     try {

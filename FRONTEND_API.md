@@ -12,38 +12,76 @@ This document explains how to connect your frontend (Web/Mobile) to the Antigrav
 
 ## 2. Real-Time (Socket.io)
 
-### Connection
+### Connection (Socket.io)
 ```javascript
-const socket = io("https://your-domain.com", {
+const socket = io("https://darkgray-yak-842420.hostingersite.com", {
   auth: { 
-    userId: "USER_ID_FROM_YOUR_APP",
-    appId: "YOUR_APP_ID"
+    userId: "438",                  // Your User ID
+    appId: "app_95f0b110a79f40d3", // Your App ID
+    userType: "users",             // 'users' or 'astrologer'
+    username: "Hanish Rahar",      // Display Name
+    avatarUrl: "profile.png"       // Avatar URL
   }
 });
 ```
 
-### Event: Sending a Message
-**Event Name**: `chat:send`
+---
+
+### Standard Response Format (ACK)
+All socket events return an acknowledgement object:
+```json
+{
+  "success": true,
+  "code": "SUCCESS",
+  "data": { ... },
+  "error": null
+}
+```
+
+---
+
+### Core Messaging Events
+
+#### Event: Sending a Message
+**Event Name**: `send_message`
 **Payload**:
 ```json
 {
   "conversationId": 123,
-  "text": "Hello world",
+  "content": "Hello world",
   "type": "text"
 }
 ```
 
-### Event: Receiving a Message
-**Event Name**: `chat:message`
+#### Event: Receiving a Message
+**Event Name**: `new_message`
 **Payload**:
 ```json
 {
   "id": 456,
-  "senderId": 789,
-  "text": "Hello world",
-  "createdAt": "2023-10-27T..."
+  "sender_id": "789",
+  "content": "Hello world",
+  "type": "text",
+  "created_at": "2026-05-11T..."
 }
 ```
+
+---
+
+### Real-Time Calling Events
+
+#### Event: Start a Call
+**Event Name**: `call:start`
+**Payload**: `{ "receiverId": "439", "type": "audio" }`
+
+#### Event: Incoming Call
+**Event Name**: `call:incoming`
+**Data**: `{ "callId": 1, "callerId": "438", "type": "audio" }`
+
+#### Event: Signaling (WebRTC)
+Events: `call:offer`, `call:answer`, `call:ice`
+**Payload**: `{ "callId": 1, "offer/answer/candidate": ... }`
+
 
 ---
 

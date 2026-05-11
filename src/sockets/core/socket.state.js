@@ -23,12 +23,13 @@ class SocketStateManager {
   // --- Socket / User Management ---
 
   addUserSocket(userId, socketId) {
-    if (!this.userSockets.has(userId)) {
-      this.userSockets.set(userId, new Set());
+    const uid = String(userId);
+    if (!this.userSockets.has(uid)) {
+      this.userSockets.set(uid, new Set());
     }
-    this.userSockets.get(userId).add(socketId);
-    this.socketToUser.set(socketId, userId);
-    this.presence.set(userId, { status: 'online', lastSeen: new Date() });
+    this.userSockets.get(uid).add(socketId);
+    this.socketToUser.set(socketId, uid);
+    this.presence.set(uid, { status: 'online', lastSeen: new Date() });
   }
 
   removeSocket(socketId) {
@@ -37,25 +38,26 @@ class SocketStateManager {
 
     this.socketToUser.delete(socketId);
     
-    const userSocks = this.userSockets.get(userId);
+    const uid = String(userId);
+    const userSocks = this.userSockets.get(uid);
     if (userSocks) {
       userSocks.delete(socketId);
       if (userSocks.size === 0) {
-        this.userSockets.delete(userId);
-        this.presence.set(userId, { status: 'offline', lastSeen: new Date() });
-        return { userId, lastSocket: true };
+        this.userSockets.delete(uid);
+        this.presence.set(uid, { status: 'offline', lastSeen: new Date() });
+        return { userId: uid, lastSocket: true };
       }
     }
-    return { userId, lastSocket: false };
+    return { userId: uid, lastSocket: false };
   }
 
   getSocketsByUserId(userId) {
-    const sockets = this.userSockets.get(userId);
+    const sockets = this.userSockets.get(String(userId));
     return sockets ? Array.from(sockets) : [];
   }
 
   isUserOnline(userId) {
-    return this.userSockets.has(userId);
+    return this.userSockets.has(String(userId));
   }
 
   // --- Typing Indicators ---
