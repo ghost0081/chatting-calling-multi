@@ -24,6 +24,7 @@ class SocketStateManager {
 
   addUserSocket(userId, socketId) {
     const uid = String(userId);
+    console.log(`[StateManager] Registering user ${uid} with socket ${socketId}`);
     if (!this.userSockets.has(uid)) {
       this.userSockets.set(uid, new Set());
     }

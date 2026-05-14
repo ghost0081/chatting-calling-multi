@@ -54,9 +54,25 @@ module.exports = (io, socket) => {
 
       // 5. Notify Receiver (all their sockets)
       const targetSockets = state.getSocketsByUserId(receiverId);
+      console.log(`[CallEngine] Notifying receiver ${receiverId}. Found ${targetSockets.length} sockets in state.`);
+      
+      let notifiedCount = 0;
       targetSockets.forEach(sid => {
-        io.to(sid).emit('call:incoming', { callId, callerId: userId, type });
+        const targetSocket = io.sockets.sockets.get(sid);
+        if (targetSocket) {
+          console.log(`[CallEngine] Found active socket ${sid} for user ${receiverId}. Emitting call:incoming.`);
+          targetSocket.emit('call:incoming', { callId, callerId: userId, type });
+          notifiedCount++;
+        } else {
+          console.warn(`[CallEngine] Socket ${sid} for user ${receiverId} is in state but not in io.sockets. Cleaning up.`);
+          state.removeSocket(sid);
+        }
       });
+
+      if (notifiedCount === 0) {
+        console.error(`[CallEngine] Failed to notify receiver ${receiverId}. No active sockets found in io.sockets!`);
+        // Optionally rollback DB or state if no sockets were actually notified
+      }
 
       sendAck(callback, true, { callId });
 
