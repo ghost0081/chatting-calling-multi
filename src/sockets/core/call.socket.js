@@ -123,7 +123,7 @@ module.exports = (io, socket) => {
       // Log to Master System Logs (for Admin Dashboard)
       await db.execute(
         'INSERT INTO system_logs (tenant_id, event_type, details, status) VALUES (?, ?, ?, ?)',
-        [tenantId, 'Call Accepted', `Call ID: ${callId} | By: ${userId}`, 'success']
+        [tenantId, 'Call Accepted', `Call ID: ${callId} | Type: ${session.type} | By: ${userId}`, 'success']
       );
 
       sendAck(callback, true);
@@ -194,7 +194,7 @@ module.exports = (io, socket) => {
     // Log to Master System Logs (for Admin Dashboard)
     await db.execute(
       'INSERT INTO system_logs (tenant_id, event_type, details, status) VALUES (?, ?, ?, ?)',
-      [tenantId, 'Call Ended', `Call ID: ${callId} | Status: ${status} | Dur: ${duration}s`, 'success']
+      [tenantId, 'Call Ended', `Call ID: ${callId} | Type: ${session.type} | Status: ${status} | Dur: ${duration}s`, 'success']
     );
 
     // 2. Clear State
