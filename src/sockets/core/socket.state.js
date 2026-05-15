@@ -18,6 +18,8 @@ class SocketStateManager {
     this.activeCalls = new Map();
     // Mapping: userId -> callId (to prevent double-calling)
     this.busyUsers = new Map();
+    // Mapping: userId -> { callId, timer } (for mid-call reconnect grace period)
+    this.reconnectSessions = new Map();
   }
 
   // --- Socket / User Management ---

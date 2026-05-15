@@ -2,6 +2,8 @@ const db = require('../../config/db');
 const DbManager = require('../../config/dbManager');
 const state = require('./socket.state');
 const { sendAck } = require('./socket.utils');
+const reconnect = require('./reconnect.socket');
+const { getIo } = require('../index');
 
 /**
  * Handles Socket Authentication and Session Initialization
@@ -48,6 +50,9 @@ exports.handleAuth = async (socket, next) => {
     // 4. Register in memory state
     state.addUserSocket(userId, socket.id);
 
+    // 5. Check for mid-call reconnect
+    reconnect.handleReconnectSync(getIo(), socket);
+
     next();
   } catch (err) {
     console.error('Socket Auth Error:', err);
@@ -59,6 +64,9 @@ exports.handleDisconnect = (io, socket) => {
   const userId = socket.user?.id;
   if (!userId) return;
 
+  // 1. Handle mid-call grace period
+  reconnect.handleMidCallDisconnect(io, socket);
+
   const result = state.removeSocket(socket.id);
   
   if (result && result.lastSocket) {
@@ -67,7 +75,5 @@ exports.handleDisconnect = (io, socket) => {
     
     // Clear typing states
     state.clearUserTyping(userId);
-    
-    // TODO: Update DB last_seen if needed
   }
 };

@@ -126,6 +126,16 @@ module.exports = (io, socket) => {
     }
   });
 
+  // --- CANCEL CALL (By Caller) ---
+  socket.on('call:cancel', async (payload) => {
+    const { callId } = payload;
+    const session = state.activeCalls.get(callId);
+    if (session && session.status === 'ringing') {
+      const tenantDb = await DbManager.getTenantDb(tenantId);
+      await endCall(io, tenantDb, callId, 'cancelled');
+    }
+  });
+
   // --- END CALL ---
   socket.on('call:end', async (payload) => {
     const { callId } = payload;
@@ -163,6 +173,10 @@ module.exports = (io, socket) => {
     state.activeCalls.delete(callId);
     state.busyUsers.delete(session.callerId);
     state.busyUsers.delete(session.receiverId);
+
+    // Also clear from reconnect sessions if any
+    state.reconnectSessions.delete(session.callerId);
+    state.reconnectSessions.delete(session.receiverId);
 
     // 3. Notify Both Parties
     [session.callerId, session.receiverId].forEach(uid => {
