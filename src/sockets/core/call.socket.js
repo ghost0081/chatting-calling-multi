@@ -28,6 +28,10 @@ module.exports = (io, socket) => {
         return sendAck(callback, false, null, 'User is offline', 'OFFLINE');
       }
       if (state.busyUsers.has(receiverId)) {
+        await db.execute(
+          'INSERT INTO system_logs (tenant_id, event_type, details, status) VALUES (?, ?, ?, ?)',
+          [tenantId, 'Call Failed (Busy)', `Caller: ${userId} -> Receiver: ${receiverId}`, 'success']
+        );
         return sendAck(callback, false, null, 'User is busy', 'BUSY');
       }
 
@@ -80,6 +84,10 @@ module.exports = (io, socket) => {
       setTimeout(async () => {
         const current = state.activeCalls.get(callId);
         if (current && current.status === 'ringing') {
+          await db.execute(
+            'INSERT INTO system_logs (tenant_id, event_type, details, status) VALUES (?, ?, ?, ?)',
+            [tenantId, 'Call Missed', `Call ID: ${callId}`, 'success']
+          );
           await endCall(io, tenantDb, callId, 'missed');
         }
       }, 45000);
@@ -112,6 +120,12 @@ module.exports = (io, socket) => {
         io.to(sid).emit('call:accepted', { callId, receiverId: userId });
       });
 
+      // Log to Master System Logs (for Admin Dashboard)
+      await db.execute(
+        'INSERT INTO system_logs (tenant_id, event_type, details, status) VALUES (?, ?, ?, ?)',
+        [tenantId, 'Call Accepted', `Call ID: ${callId} | By: ${userId}`, 'success']
+      );
+
       sendAck(callback, true);
     } catch (err) { console.error('Call Accept Error:', err); }
   });
@@ -122,6 +136,13 @@ module.exports = (io, socket) => {
     const session = state.activeCalls.get(callId);
     if (session) {
       const tenantDb = await DbManager.getTenantDb(tenantId);
+
+      // Log to Master System Logs (for Admin Dashboard)
+      await db.execute(
+        'INSERT INTO system_logs (tenant_id, event_type, details, status) VALUES (?, ?, ?, ?)',
+        [tenantId, 'Call Rejected', `Call ID: ${callId} | By: ${userId}`, 'success']
+      );
+
       await endCall(io, tenantDb, callId, 'rejected');
     }
   });
@@ -132,6 +153,13 @@ module.exports = (io, socket) => {
     const session = state.activeCalls.get(callId);
     if (session && session.status === 'ringing') {
       const tenantDb = await DbManager.getTenantDb(tenantId);
+
+      // Log to Master System Logs (for Admin Dashboard)
+      await db.execute(
+        'INSERT INTO system_logs (tenant_id, event_type, details, status) VALUES (?, ?, ?, ?)',
+        [tenantId, 'Call Cancelled', `Call ID: ${callId} | By: ${userId}`, 'success']
+      );
+
       await endCall(io, tenantDb, callId, 'cancelled');
     }
   });

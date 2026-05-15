@@ -698,11 +698,27 @@ function LogsPage() {
                 <tbody>
                   {logs.map(log => (
                     <tr key={log.id}>
-                      <td style={{ fontWeight: 500 }}>{log.event_type}</td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                          <span style={{ fontSize: 18 }}>
+                            {log.event_type.includes('Started') ? '🟢' : 
+                             log.event_type.includes('Accepted') ? '🤝' : 
+                             log.event_type.includes('Rejected') ? '🚫' : 
+                             log.event_type.includes('Cancelled') ? '🔴' : 
+                             log.event_type.includes('Missed') ? '⏳' : 
+                             log.event_type.includes('Busy') ? '📵' : 
+                             log.event_type.includes('Ended') ? '🏁' : '📌'}
+                          </span>
+                          <span style={{ fontWeight: 500 }}>{log.event_type}</span>
+                        </div>
+                      </td>
                       <td style={{ color: 'var(--text-secondary)' }}>{log.tenant_name || '—'}</td>
                       <td style={{ color: 'var(--text-secondary)', fontSize: 12, maxWidth: 200 }}>{log.details}</td>
                       <td>
-                        <span className={`badge ${log.status === 'success' ? 'badge-green' : 'badge-red'}`}>
+                        <span className={`badge ${
+                          (log.event_type.includes('Failed') || log.event_type.includes('Missed') || log.event_type.includes('Rejected')) ? 'badge-red' : 
+                          log.status === 'success' ? 'badge-green' : 'badge-red'
+                        }`}>
                           {log.status}
                         </span>
                       </td>
